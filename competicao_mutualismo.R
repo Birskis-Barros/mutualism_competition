@@ -23,7 +23,7 @@ z_p = runif(sp_p, 0, 10)# for the plants
 #data <- matrix(NA, ncol = 2, nrow = t_max)
 
 t_max = 1000
-#for(i in 1:t_max){
+for(i in 1:t_max){
   
 ### Calculating trait matching among plants and animals (alfa must be low)
   z_dif = sapply(z_a, "-", z_p) # difference between traits 
@@ -40,7 +40,7 @@ t_max = 1000
   #(quanto de sobreposicao nas interacoes existem (parte superior da eq 1))
   mat.int <- t(A) %*% A  
   
-  tot <- diag(mat.int)
+  tot <- diag(mat.int) #o numero total de interações que a espécie da coluna tem 
   
   for (i in 1:nrow(mat.nij))
   {
@@ -49,20 +49,28 @@ t_max = 1000
     }
   }
   
+  #mat.int[i,j]  = numero de interacoes que a especie da coluna compartilha com a da linha 
+  
   #quanto maior o valor de z_dif_animal, maior a similaridade entre 
   #as especies e, portando, maior a competicao
   
   z_dif_animal = sapply(z_a, "-", z_a)^2 #(equacao 2 - sem a exponencial)
   
   matriz.c <-   mat.nij*exp(alpha*z_dif_animal) #(equacao 3)
+  diag(matriz.c) <- NA #removendo a competicao intraespecifica 
+ 
+  #Calculating the probability to maintain the interaction 
+
+  manter.interacao <- 1- apply(matriz.c,2,mean, na.rm=TRUE)  #média de competicao pra cada especie de coluna com a especie da linha
   
-  diag(matriz.c) <- NA
+  manter.interacao <- matrix(manter.interacao, ncol=4, nrow=5, byrow=TRUE)
   
-  1- apply(matriz.c,2,mean, na.rm=TRUE)
-  #o primeiro valor daqui vai multiplicar com todos os elementos da primeira coluna
-  # o segundo valor vai multiplicar com todos os elementos da segunda coluna.. e assim sucessivamente 
+  teste <- matrix(runif(20,0,1), ncol=4, nrow=5, byrow=TRUE)
   
-  #depois de calcular isso, precisamos criar uma matriz igual a A, mas dadas as probabilidades calculadas 
+  A.2 <- ifelse(teste>manter.interacao,0,A)
+  }
+  
+  # Proximo passo: criar uma lista e salvar cada rede como um elemento da lista 
   
   
 
