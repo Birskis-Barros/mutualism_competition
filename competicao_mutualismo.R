@@ -1,5 +1,3 @@
-getwd()
-
 #necessary packages  
 
 library(bipartite)
@@ -8,7 +6,7 @@ library("GGally")
 library("sna")
 library(igraph)
 library("network")
-
+require(ggnetwork)
 
 #Parameters 
 sp_p = 5 #number of plants
@@ -22,16 +20,19 @@ z_p = runif(sp_p, 0, 10)# for the plants
 
 #data <- matrix(NA, ncol = 2, nrow = t_max)
 
-t_max = 1000
-for(i in 1:t_max){
-  
+t_max = 50
+redes = list()
+
 ### Calculating trait matching among plants and animals (alfa must be low)
-  z_dif = sapply(z_a, "-", z_p) # difference between traits 
-  A <- matrix(1, nrow=sp_p, ncol=sp_a) #total connected matrix 
-  
-  # In A, if the value of the difference between traits is more than 3 (arbitrary), 
-  #we remove the interaction (=0)
-  A[abs(z_dif)> 3] = 0 
+z_dif = sapply(z_a, "-", z_p) # difference between traits 
+A <- matrix(1, nrow=sp_p, ncol=sp_a) #total connected matrix 
+
+# In A, if the value of the difference between traits is more than 3 (arbitrary), 
+#we remove the interaction (=0)
+A[abs(z_dif)> 3] = 0 
+A.ini <- A
+
+for(n in 1:t_max){
   
   # Calculating competition among animals
   mat.nij <- matrix(NA, ncol=sp_a, nrow=sp_a) #matrix with only animals
@@ -63,15 +64,20 @@ for(i in 1:t_max){
 
   manter.interacao <- 1- apply(matriz.c,2,mean, na.rm=TRUE)  #média de competicao pra cada especie de coluna com a especie da linha
   
-  manter.interacao <- matrix(manter.interacao, ncol=4, nrow=5, byrow=TRUE)
+  manter.interacao <- matrix(manter.interacao, ncol=sp_a, nrow=sp_p, byrow=TRUE)
   
   teste <- matrix(runif(20,0,1), ncol=4, nrow=5, byrow=TRUE)
   
-  A.2 <- ifelse(teste>manter.interacao,0,A)
+  A <- ifelse(teste>manter.interacao,0,A)
+  
+ redes[[n]] = list(A)
+  
   }
-  
-  # Proximo passo: criar uma lista e salvar cada rede como um elemento da lista 
-  
-  
 
+###Analyzing 
+
+plot(x=1:50, y=laply(network, function(x) sum(x)))
+ggnet2(network(redes[[2]]), label=TRUE)
+llply(redes, function(x) networklevel(x, index="NODF" ))
+llply(redes, function(x) networklevel(x, index="connectance" ))
  
