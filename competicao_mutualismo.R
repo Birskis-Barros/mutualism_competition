@@ -1,16 +1,18 @@
 #necessary packages  
 
-library(bipartite)
+library("bipartite")
 library("ggplot2")
 library("GGally")
 library("sna")
-library(igraph)
+library("igraph")
 library("network")
-require(ggnetwork)
+require("plyr")
+require("ggnetwork")
+require("dplyr")
 
 #Parameters 
-sp_p = 5 #number of plants
-sp_a = 4 #number of animals 
+sp_p = 10 #number of plants
+sp_a = 20 #number of animals 
 N = sp_a + sp_p #total richness
 alpha = -2 
 
@@ -20,7 +22,7 @@ z_p = runif(sp_p, 0, 10)# for the plants
 
 #data <- matrix(NA, ncol = 2, nrow = t_max)
 
-t_max = 50
+t_max = 200
 redes = list()
 
 ### Calculating trait matching among plants and animals (alfa must be low)
@@ -66,18 +68,39 @@ for(n in 1:t_max){
   
   manter.interacao <- matrix(manter.interacao, ncol=sp_a, nrow=sp_p, byrow=TRUE)
   
-  teste <- matrix(runif(20,0,1), ncol=4, nrow=5, byrow=TRUE)
+  teste <- matrix(runif(20,0,1), ncol=sp_a, nrow=sp_p, byrow=TRUE)
   
   A <- ifelse(teste>manter.interacao,0,A)
   
- redes[[n]] = list(A)
+ redes[[n]] = A
   
   }
 
 ###Analyzing 
 
-plot(x=1:50, y=laply(network, function(x) sum(x)))
+ggnet2(network(redes[[10]]), label=TRUE)
+
+plot(x=1:50, y=plyr::laply(redes, function(x) sum(x)))
 ggnet2(network(redes[[2]]), label=TRUE)
+
+
+length(which(apply(redes[[10]], 2, sum)==0))
+
+llply(redes, function(x) length(which(apply(x, 2, sum)==0)))
+llply(redes, function(x) length(which(apply(x, 1, sum)==0)))
+
 llply(redes, function(x) networklevel(x, index="NODF" ))
+
 llply(redes, function(x) networklevel(x, index="connectance" ))
- 
+
+redes_analise = data.frame()
+for ( i in 1:t_max){
+  redes_analise[i,1] = llply(redes, function(x) networklevel(x, index="connectance"))[[i]]
+  redes_analise[i,2] = llply(redes, function(x) networklevel(x, index="NODF"))[[i]]
+}
+
+colnames(redes_analise) = c("connectance", "aninhamento", "t_max")
+redes_analise$t_max = 1:t_max
+plot(redes_analise$connectance~redes_analise$t_max)
+plot(redes_analise$aninhamento~redes_analise$t_max)
+
