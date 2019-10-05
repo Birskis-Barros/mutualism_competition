@@ -1,3 +1,5 @@
+getwd()
+
 #necessary packages  
 
 library("bipartite")
@@ -6,9 +8,7 @@ library("GGally")
 library("sna")
 library("igraph")
 library("network")
-require("plyr")
-require("ggnetwork")
-require("dplyr")
+
 
 #Parameters 
 sp_p = 10 #number of plants
@@ -22,28 +22,29 @@ z_p = runif(sp_p, 0, 10)# for the plants
 
 #data <- matrix(NA, ncol = 2, nrow = t_max)
 
-t_max = 200
+t_max = 50
 redes = list()
 
-### Calculating trait matching among plants and animals (alfa must be low)
 z_dif = sapply(z_a, "-", z_p) # difference between traits 
 A <- matrix(1, nrow=sp_p, ncol=sp_a) #total connected matrix 
+A[abs(z_dif)> 3] = 0 
+A.ini <- A
+### Calculating trait matching among plants and animals (alfa must be low)
 
 # In A, if the value of the difference between traits is more than 3 (arbitrary), 
 #we remove the interaction (=0)
-A[abs(z_dif)> 3] = 0 
-A.ini <- A
+
+# Calculating competition among animals
+mat.nij <- matrix(NA, ncol=sp_a, nrow=sp_a) #matrix with only animals
 
 for(n in 1:t_max){
   
-  # Calculating competition among animals
-  mat.nij <- matrix(NA, ncol=sp_a, nrow=sp_a) #matrix with only animals
   
   #for how much overleap exist (related to the above part in eq 1)
   #(quanto de sobreposicao nas interacoes existem (parte superior da eq 1))
-  mat.int <- t(A) %*% A  
+  mat.int <- t(A) %*% A  #numero de interacoes que a especie da coluna compartilha com a da linha 
   
-  tot <- diag(mat.int) #o numero total de interações que a espécie da coluna tem 
+  tot <- diag(mat.int)#o numero total de interações que a espécie da coluna tem (parte inferior da eq 1)
   
   for (i in 1:nrow(mat.nij))
   {
@@ -51,8 +52,6 @@ for(n in 1:t_max){
      mat.nij[i,j] <- mat.int[i,j]/(tot[i]+tot[j]-mat.int[i,j]) 
     }
   }
-  
-  #mat.int[i,j]  = numero de interacoes que a especie da coluna compartilha com a da linha 
   
   #quanto maior o valor de z_dif_animal, maior a similaridade entre 
   #as especies e, portando, maior a competicao
@@ -72,7 +71,7 @@ for(n in 1:t_max){
   
   A <- ifelse(teste>manter.interacao,0,A)
   
- redes[[n]] = A
+  redes[[n]] = A
   
   }
 
@@ -93,14 +92,26 @@ llply(redes, function(x) networklevel(x, index="NODF" ))
 
 llply(redes, function(x) networklevel(x, index="connectance" ))
 
+
 redes_analise = data.frame()
 for ( i in 1:t_max){
   redes_analise[i,1] = llply(redes, function(x) networklevel(x, index="connectance"))[[i]]
   redes_analise[i,2] = llply(redes, function(x) networklevel(x, index="NODF"))[[i]]
 }
 
-colnames(redes_analise) = c("connectance", "aninhamento", "t_max")
 redes_analise$t_max = 1:t_max
+colnames(redes_analise) = c("connectance", "aninhamento", "t_max")
 plot(redes_analise$connectance~redes_analise$t_max)
 plot(redes_analise$aninhamento~redes_analise$t_max)
+
+redes_teste = data.frame()
+for (i in 1:t_max){
+  redes_teste[i,1] = sum(redes[[i]])/(sp_a*sp_p)
+}
+redes_teste$t_max = 1:t_max
+colnames(redes_teste) = c("connectance", "t_max")
+plot(redes_teste$connectance~redes_teste$t_max)
+
+ldply(redes, function(x) (sum(x)/200)) == redes_teste[,1]
+
 
